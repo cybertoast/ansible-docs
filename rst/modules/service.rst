@@ -30,12 +30,14 @@ Example actions from Ansible :doc:`playbooks`::
     service name=httpd state=reloaded
     service name=foo pattern=/usr/bin/foo state=started
 
-One caveat to keep in mind when using the `service` module: In some cases the init.d/service may attempt to
-background a process which dies as soon as the ansible shell process terminates (i.e., as soon as the service
-task is completed).
 
-The way around this limitation is to use the `command` module by passing the service startup script a `nohup`.
-For example::
+**(Broken) Daemons**
 
-    command /usr/bin/nohup /sbin/service/rabbitmq-server start
+In some cases the init.d/service may background a process which dies as soon 
+as the ansible task completes (i.e., as soon as the ansible shell terminates).
+This is indication that daemonization did not happen correctly. A workaround 
+is to use the ``command`` module with ``nohup``. 
 
+Also see the `command`_ module's documentation for more details.
+
+Obviously, the correct solution is to fix the broken daemonization process!

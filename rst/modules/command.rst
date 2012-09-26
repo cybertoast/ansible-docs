@@ -32,23 +32,33 @@ Example action from Ansible :doc:`playbooks`::
 
     command /sbin/shutdown -t now
 
-creates and chdir can be specified after the command.  For instance, if you only want to run a command if a certain file does not exist, you can do the following::
+creates and chdir can be specified after the command.  For instance, if you only want to run a 
+command if a certain file does not exist, you can do the following::
 
     command /usr/bin/make_database.sh arg1 arg2 creates=/path/to/database
 
-The `creates=` and `chdir` options will not be passed to the actual executable.
+The ``creates=`` and ``chdir`` options will not be passed to the actual executable.
 
-Background Processes and init.d scripts
----------------------------------------
+**Background Processes and init.d scripts**
 
-There may be instances where you need to use the command module to launch an init.d process, 
-which tries to daemonize the called program. For instance::
+The ``command`` module may be used to launch ``init.d`` service scripts under exigent circumstances:
 
-    command /etc/init.d/rabbitmq-server start
+- running the script via ``service`` causes the daemon to die upon ansible task completion. 
+  E.g. ``service name=my-init-script state=restarted``
+- running the script normally via ``command`` causes the daemon to die upon ansible task completion. 
+  E.g. ``command /etc/init.d/my-init-script start``
 
-This may not work since the backgrounded process inside the init.d script will die when the 
-`subprocess` task that `command` launches. To resolve this, the action should instead be::
+These cases indicate that the init.d script (or service) did not daemonize correctly.
 
-    command /usr/bin/nohup /sbin/service/rabbitmq-server start
+One (horrendously hackish) solution is to use ``nohup`` to get around the incorrect daemonization, as follows::
+
+    command /usr/bin/nohup /sbin/service/badly-written-server start
     
-This also relates to the `service` module, which is documented separately.
+The "correct" solution is to fix the init.d script's daemonization.  A common problem is the 
+init.d script launching a backgrounded process using &. This backgrounded process will be HUP'ed
+when the calling shell (i.e., ansible's SSH session) terminates. The backgrounding process 
+should use ``start-stop-daemon`` (on Debian-based systems, ``/sbin/start-stop-daemon``) 
+or ``daemon`` (on RedHat/Fedora-based systems, in ``/etc/rc.d/init.d/functions``).
+
+Also see `service`_ module's documentation.
+
